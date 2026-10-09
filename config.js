@@ -1,1 +1,2 @@
-window.AMO1_SIGNAL_URL = 'https://am01-signal.onrender.com';
+
+window.AMO1_SIGNAL_URL = 'wss://am01-signal.onrender.com';
