@@ -44,3 +44,25 @@ footer{text-align:center;color:#7b8598;font-size:.7rem;font-weight:700;padding:1
 .toast{position:fixed;z-index:99;bottom:20px;left:50%;transform:translate(-50%,12px);opacity:0;pointer-events:none;background:#202432;color:white;padding:11px 16px;border-radius:999px;box-shadow:0 10px 30px #0002;transition:.2s;max-width:90vw;text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:760px){main{width:calc(100% - 18px);padding-top:10px}.hero,.work{grid-template-columns:1fr}.qrCard{grid-template-columns:1fr}.qr{margin:0 auto}.cameraGrid{grid-template-columns:28px minmax(0,1fr) 28px;gap:4px}.cameraStage{min-height:220px;border-radius:18px}.controls{gap:8px;bottom:10px;padding:6px 10px}.controls .shutter{width:54px;height:54px;min-width:54px}.tools{grid-template-columns:1fr}.time{grid-column:auto}.devices{display:grid;grid-template-columns:1fr}.hero aside{grid-template-columns:1fr 1fr}}
 @media(max-width:420px){.hero aside{grid-template-columns:1fr}.cameraStage{aspect-ratio:4/5;min-height:320px}.topStatus span{font-size:.57rem;padding:6px 7px}.controls{gap:4px}.arrow{font-size:2.2rem}.qr{width:190px;height:190px}}
+
+/* Keep camera controls clickable above the overlay */
+.cameraStage .controls {
+  position: absolute;
+  z-index: 40;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.cameraStage .overlay {
+  z-index: 30;
+}
+
+.cameraStage .overlay.hidden {
+  display: none !important;
+}
+
