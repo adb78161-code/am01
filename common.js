@@ -1,0 +1,8 @@
+window.Amo1=(()=>{const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+function wsUrl(){let u=String(window.AMO1_SIGNAL_URL||'').replace(/\/+$/,'');if(!u){const p=location.protocol==='https:'?'wss:':'ws:';u=p+'//'+location.host}u=u.replace(/^http:/,'ws:').replace(/^https:/,'wss:');return u+'/signal'}
+function toast(t){let e=$('#toast');if(!e){e=document.createElement('div');e.id='toast';e.className='toast';document.body.append(e)}e.textContent=t;e.classList.add('show');clearTimeout(e.t);e.t=setTimeout(()=>e.classList.remove('show'),2500)}
+function copy(t){return navigator.clipboard?.writeText(t).then(()=>toast('Copied')).catch(()=>{let x=document.createElement('textarea');x.value=t;document.body.append(x);x.select();document.execCommand('copy');x.remove();toast('Copied')})}
+function browser(){let u=navigator.userAgent;return /Edg/i.test(u)?'Edge':/Chrome/i.test(u)?'Chrome':/Firefox/i.test(u)?'Firefox':/Safari/i.test(u)?'Safari':'Browser'}
+function model(){let u=navigator.userAgent;if(/iPhone/i.test(u))return'iPhone';if(/iPad/i.test(u))return'iPad';let m=u.match(/Android[^;]*;\s*([^;)]+)/i);return m?.[1]?.trim()||navigator.platform||'Device'}
+function sessionHash(){let h=location.hash.replace(/^#/,'');return h.startsWith('session=')?decodeURIComponent(h.slice(8)):decodeURIComponent(h)}
+return{$,$$,wsUrl,toast,copy,browser,model,sessionHash}})();

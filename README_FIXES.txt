@@ -1,0 +1,1 @@
+Replace all frontend files in GitHub root and server.js/package.json in existing Render repo. No new Render service needed. Verify config.js hostname. This package includes a replacement CSS because styles.css was not among uploaded files. WebRTC over some mobile networks may require TURN. Device B must grant browser camera permission.

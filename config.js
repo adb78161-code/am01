@@ -1,0 +1,1 @@
+window.AMO1_SIGNAL_URL = 'wss://am01-vwy8.onrender.com';
