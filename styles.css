@@ -66,3 +66,56 @@ footer{text-align:center;color:#7b8598;font-size:.7rem;font-weight:700;padding:1
   display: none !important;
 }
 
+/* Amo1 Device B — restore visible, clickable camera controls */
+body.b .cameraStage {
+  position: relative !important;
+  overflow: hidden;
+}
+
+body.b .cameraStage .controls {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: absolute !important;
+  z-index: 100 !important;
+  left: 50% !important;
+  bottom: 12px !important;
+  transform: translateX(-50%) !important;
+  width: max-content !important;
+  gap: 14px;
+}
+
+body.b .cameraStage .controls button {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 101;
+  min-width: 54px;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border-radius: 50%;
+  background: #202338;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,.8);
+  cursor: pointer;
+}
+
+body.b .cameraStage .overlay {
+  z-index: 30 !important;
+  pointer-events: none;
+}
+
+body.b .cameraStage .overlay.hidden {
+  display: none !important;
+}
+
+body.b .cameraStage .controls small {
+  display: block !important;
+  font-size: 10px;
+}
+
