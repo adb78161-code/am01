@@ -1,20 +1,277 @@
-(()=>{const{$,$$,toast,wsUrl,browser,model,sessionHash}=Amo1;const E={v:$('#cameraVideo'),stage:$('#cameraStage'),overlay:$('#overlay'),status:$('#status'),fps:$('#fps'),stickers:$('#stickers'),cat:$('#cat'),list:$('#list'),mood:$('#mood'),moodText:$('#moodText'),time:$('#time'),date:$('#date')};const sid=sessionHash();const S={ws:null,id:null,host:null,pc:null,dc:null,stream:null,facing:'user',timer:null,cat:'anime',idx:0,stopped:false};const sets={anime:['♡','✦','☆','૮₍ ˃ ⤙ ˂ ₎ა','猫','ꕤ','୨୧'],nature:['🌿','🌳','🦋','🐦','🐇','🍃','☀️','🌸'],background:['soft','dream','warm','cool','night']};
-function send(m){if(S.ws?.readyState===1)S.ws.send(JSON.stringify(m))}function dc(m){if(S.dc?.readyState==='open')S.dc.send(JSON.stringify(m))}
-function media(){return navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:S.facing},width:{ideal:1280},height:{ideal:720}},audio:false})}
-function setup(){if(!S.host||S.pc)return;S.pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});if(S.stream)S.stream.getTracks().forEach(t=>S.pc.addTrack(t,S.stream));S.pc.ondatachannel=e=>bind(e.channel);S.pc.onicecandidate=e=>e.candidate&&send({type:'signal',to:S.host,data:{k:'ice',c:e.candidate}});S.pc.onconnectionstatechange=()=>{E.status.textContent=S.pc.connectionState==='connected'?'Stream live':'Stream '+S.pc.connectionState}}
-async function renegotiate(){if(!S.pc||!S.host)return;try{let d=await S.pc.createOffer();await S.pc.setLocalDescription(d);send({type:'signal',to:S.host,data:{k:'offer',d:S.pc.localDescription}})}catch(e){console.warn('Renegotiation failed',e)}}
-function bind(c){S.dc=c;c.onopen=()=>{E.status.textContent='Stream live';info();loc();startFrames()}}
-function info(extra={}){dc({type:'device-info',info:{deviceName:'Device B · '+model(),browser:browser(),model:model(),platform:navigator.platform,...extra}})}
-async function sig(d){if(!S.pc)setup();try{if(d.k==='offer'){await S.pc.setRemoteDescription(d.d);for(const c of S.icePending||[])await S.pc.addIceCandidate(c).catch(()=>{});S.icePending=[];let a=await S.pc.createAnswer();await S.pc.setLocalDescription(a);send({type:'signal',to:S.host,data:{k:'answer',d:S.pc.localDescription}})}else if(d.k==='answer'){await S.pc.setRemoteDescription(d.d)}else if(d.k==='ice'){if(S.pc.remoteDescription)await S.pc.addIceCandidate(d.c);else (S.icePending??=[]).push(d.c)}}catch(e){console.error(e)}}
-function connect(){S.ws=new WebSocket(wsUrl());S.ws.onopen=()=>{if(!sid)return toast('Invalid QR');send({type:'join-session',sessionId:sid})};S.ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}if(m.type==='hello')S.id=m.peerId;if(m.type==='joined'){S.host=m.hostPeerId;setup()}if(m.type==='signal')sig(m.data);if(m.type==='session-ended')stop(false);if(m.type==='error')toast(m.message)};S.ws.onerror=()=>toast('Signaling unavailable')}
-async function start(){if(S.stream)return true;try{S.stream=await media();E.v.srcObject=S.stream;E.v.dataset.rear=S.facing==='environment';await E.v.play().catch(()=>{});E.overlay.classList.add('hidden');E.stage.classList.add('live');if(!S.pc)setup();else{let s=S.pc.getSenders().find(x=>x.track?.kind==='video');if(s)await s.replaceTrack(S.stream.getVideoTracks()[0]);else{S.pc.addTrack(S.stream.getVideoTracks()[0],S.stream);if(S.pc.signalingState==='stable')renegotiate()}}info();loc();startFrames();return true}catch(e){toast(e.name==='NotAllowedError'?'Camera permission denied':'Camera could not start');return false}}
-async function flip(){if(!(await start()))return;let old=S.stream;S.facing=S.facing==='user'?'environment':'user';try{let n;try{n=await media()}catch(e){old.getTracks().forEach(t=>t.stop());n=await media()}let t=n.getVideoTracks()[0],s=S.pc?.getSenders().find(x=>x.track?.kind==='video');if(s)await s.replaceTrack(t);S.stream=n;E.v.srcObject=n;E.v.dataset.rear=S.facing==='environment';await E.v.play().catch(()=>{});old.getTracks().forEach(x=>x.stop());toast(S.facing==='environment'?'Back camera':'Front camera')}catch(e){S.facing=S.facing==='user'?'environment':'user';toast('Could not switch camera')}}
-function frame(){if(!S.stream||S.dc?.readyState!=='open'||!E.v.videoWidth)return;let c=document.createElement('canvas'),w=400,h=225;c.width=w;c.height=h;c.getContext('2d').drawImage(E.v,0,0,w,h);c.toBlob(b=>{if(!b||S.dc.bufferedAmount>500000)return;let r=new FileReader();r.onload=()=>dc({type:'frame',data:r.result,createdAt:Date.now()});r.readAsDataURL(b)},'image/jpeg',.4)}
-function startFrames(){if(S.timer)return;S.timer=setInterval(frame,500);E.fps.textContent='2f/s capture: on'}
-function photo(){if(!S.stream)return toast('Start camera first');if(S.dc?.readyState!=='open')return toast('Device A not connected');let c=document.createElement('canvas'),w=E.v.videoWidth||1280,h=E.v.videoHeight||720;c.width=w;c.height=h;c.getContext('2d').drawImage(E.v,0,0,w,h);c.toBlob(b=>{let r=new FileReader();r.onload=()=>dc({type:'photo',data:r.result,mime:'image/jpeg',createdAt:Date.now()});r.readAsDataURL(b)},'image/jpeg',.88)}
-function loc(){if(!navigator.geolocation)return;navigator.geolocation.getCurrentPosition(p=>info({location:{lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}}),()=>{}, {enableHighAccuracy:true,timeout:12000,maximumAge:0})}
-function render(){let a=sets[S.cat];E.cat.textContent=S.cat[0].toUpperCase()+S.cat.slice(1);E.list.innerHTML='';a.forEach((x,i)=>{let b=document.createElement('button');b.textContent=x;b.className=i===S.idx?'active':'';b.onclick=()=>{S.idx=i;render()};E.list.append(b)});E.stickers.textContent=S.cat==='background'?'':a[S.idx];E.stage.dataset.bg=S.cat==='background'?a[S.idx]:''}
-function cycle(n){S.idx=(S.idx+n+sets[S.cat].length)%sets[S.cat].length;render()}
-function clock(){let d=new Date();E.time.textContent=d.toLocaleTimeString();E.date.textContent=d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric',year:'numeric'})}
-function stop(show=true){S.stopped=true;clearInterval(S.timer);S.stream?.getTracks().forEach(t=>t.stop());S.pc?.close();S.dc?.close();S.ws?.close();E.v.srcObject=null;E.overlay.classList.remove('hidden');E.status.textContent='Stopped';if(show)toast('Stopped')}
-$('#camera').onclick=start;$('#flip').onclick=flip;$('#photo').onclick=photo;$('#prev').onclick=()=>cycle(-1);$('#next').onclick=()=>cycle(1);$('#stop').onclick=()=>stop();$$('.chip').forEach(b=>b.onclick=()=>{$$('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');S.cat=b.dataset.cat;S.idx=0;render()});render();clock();setInterval(clock,1000);if(sid)connect();else E.status.textContent='Invalid QR'})()
+
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const E = {
+    video: $("#cameraVideo"),
+    stage: $("#cameraStage"),
+    overlay: $("#overlay"),
+    status: $("#status"),
+    mood: $("#mood"),
+    moodText: $("#moodText"),
+    time: $("#time"),
+    date: $("#date"),
+    camera: $("#camera"),
+    flip: $("#flip"),
+    photo: $("#photo"),
+    stop: $("#stop")
+  };
+
+  let stream = null;
+  let recorder = null;
+  let chunks = [];
+  let facing = "user";
+  let recordingStartedAt = 0;
+  let timerId = null;
+  let stopped = false;
+
+  // Add visible recording controls.
+  const bar = document.createElement("div");
+  bar.id = "recordingBar";
+  bar.style.cssText = `
+    display:flex;align-items:center;justify-content:center;
+    gap:12px;flex-wrap:wrap;margin:12px auto;padding:10px;
+  `;
+
+  const rec = document.createElement("span");
+  rec.textContent = "● REC OFF";
+  rec.style.cssText = "font-weight:700;color:#777";
+
+  const elapsed = document.createElement("span");
+  elapsed.textContent = "00:00";
+  elapsed.style.fontVariantNumeric = "tabular-nums";
+
+  const download = document.createElement("button");
+  download.textContent = "Download video";
+  download.disabled = true;
+
+  bar.append(rec, elapsed, download);
+  E.stage.insertAdjacentElement("afterend", bar);
+
+  function setStatus(message) {
+    if (E.status) E.status.textContent = message;
+  }
+
+  function updateClock() {
+    const d = new Date();
+    if (E.time) E.time.textContent = d.toLocaleTimeString();
+    if (E.date) {
+      E.date.textContent = d.toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+  }
+
+  function updateTimer() {
+    const seconds = Math.floor((Date.now() - recordingStartedAt) / 1000);
+    elapsed.textContent =
+      String(Math.floor(seconds / 60)).padStart(2, "0") +
+      ":" +
+      String(seconds % 60).padStart(2, "0");
+  }
+
+  async function startCamera() {
+    if (stream) return true;
+    stopped = false;
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Camera API unavailable. Open the HTTPS website.");
+      }
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: facing },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: true
+      });
+
+      E.video.srcObject = stream;
+      await E.video.play();
+
+      E.overlay?.classList.add("hidden");
+      E.stage?.classList.add("live");
+      if (E.mood) E.mood.textContent = "Camera on";
+      if (E.moodText) E.moodText.textContent = "Camera is active.";
+
+      setStatus("Camera on");
+      E.camera.textContent = "Camera on";
+      download.disabled = true;
+
+      // Recording starts only after the user approves camera access.
+      startRecording();
+      return true;
+    } catch (error) {
+      console.error(error);
+      setStatus("Camera permission needed");
+      alert(
+        error.name === "NotAllowedError"
+          ? "Camera/microphone permission was denied. Allow access in browser settings and try again."
+          : "Unable to start camera: " + error.message
+      );
+      return false;
+    }
+  }
+
+  function startRecording() {
+    if (!stream || recorder?.state === "recording") return;
+
+    if (!window.MediaRecorder) {
+      setStatus("Video recording unsupported in this browser");
+      return;
+    }
+
+    chunks = [];
+
+    const mimeType = [
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm"
+    ].find(type => MediaRecorder.isTypeSupported(type));
+
+    try {
+      recorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined
+      );
+
+      recorder.ondataavailable = event => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        clearInterval(timerId);
+        timerId = null;
+
+        if (chunks.length) {
+          const blob = new Blob(chunks, {
+            type: recorder.mimeType || "video/webm"
+          });
+
+          // Keep the completed recording available for download.
+          download.disabled = false;
+          download.onclick = () => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `amo1-recording-${Date.now()}.webm`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+          };
+
+          setStatus("Recording saved locally — download available");
+        }
+      };
+
+      recorder.start(1000);
+      recordingStartedAt = Date.now();
+
+      rec.textContent = "● REC";
+      rec.style.color = "#d7193f";
+      timerId = setInterval(updateTimer, 250);
+      setStatus("Recording");
+    } catch (error) {
+      console.error(error);
+      setStatus("Could not start recording");
+    }
+  }
+
+  async function flipCamera() {
+    if (!stream && !(await startCamera())) return;
+
+    const oldStream = stream;
+    facing = facing === "user" ? "environment" : "user";
+
+    try {
+      const nextStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: facing } },
+        audio: true
+      });
+
+      const nextVideo = nextStream.getVideoTracks()[0];
+      const nextAudio = nextStream.getAudioTracks()[0];
+
+      // Replace the video track in the active recording when supported.
+      if (recorder?.state === "recording") {
+        recorder.stop();
+      }
+
+      oldStream.getTracks().forEach(track => track.stop());
+      stream = nextStream;
+      E.video.srcObject = stream;
+      await E.video.play();
+
+      startRecording();
+      setStatus(facing === "user" ? "Front camera" : "Back camera");
+    } catch (error) {
+      console.error(error);
+      facing = facing === "user" ? "environment" : "user";
+      setStatus("Could not switch camera");
+    }
+  }
+
+  function stopAll() {
+    stopped = true;
+    clearInterval(timerId);
+    timerId = null;
+
+    if (recorder?.state === "recording") {
+      recorder.stop();
+    }
+
+    stream?.getTracks().forEach(track => track.stop());
+    stream = null;
+
+    if (E.video) E.video.srcObject = null;
+    E.overlay?.classList.remove("hidden");
+    E.stage?.classList.remove("live");
+
+    if (E.mood) E.mood.textContent = "Camera off";
+    if (E.moodText) E.moodText.textContent = "Camera and recording stopped.";
+
+    rec.textContent = "● REC OFF";
+    rec.style.color = "#777";
+    setStatus("Stopped");
+    E.camera.textContent = "Camera";
+  }
+
+  // Photo capture is local to this device.
+  function takePhoto() {
+    if (!stream || !E.video.videoWidth) {
+      alert("Start the camera first.");
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = E.video.videoWidth;
+    canvas.height = E.video.videoHeight;
+    canvas.getContext("2d").drawImage(
+      E.video, 0, 0, canvas.width, canvas.height
+    );
+
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `amo1-photo-${Date.now()}.jpg`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }, "image/jpeg", 0.92);
+  }
+
+  E.camera?.addEventListener("click", startCamera);
+  E.flip?.addEventListener("click", flipCamera);
+  E.photo?.addEventListener("click", takePhoto);
+  E.stop?.addEventListener("click", stopAll);
+
+  updateClock();
+  setInterval(updateClock, 1000);
+  setStatus("Ready — tap Camera to begin");
+})();
